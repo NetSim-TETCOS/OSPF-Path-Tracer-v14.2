@@ -253,7 +253,7 @@ def process_packet_trace(trace_path: str, app_names: list) -> list:
 if len(sys.argv) != 2:
     # Print error message with usage format
     print("Error: Incorrect number of arguments.")
-    print("Usage: python OSPF_Path_Tracer <path_to_experiment_folder>")
+    print("Usage: OSPF_Path_Tracer <path_to_experiment_folder>")
     sys.exit(1)  # Exit the program with an error code
 
 # Get the file path argument
@@ -591,7 +591,7 @@ for idx, app in enumerate(app_name):
 ax.legend(handles=legend_handles)
 
 # Set plot title
-plt.title("Network Flow Diagram")
-
+plt.title("Network Application Flow Diagram")
+fig.canvas.manager.set_window_title("OSPF Path Tracer")
 # Show plot
 plt.show(block=True)  # Keep the plot window open
