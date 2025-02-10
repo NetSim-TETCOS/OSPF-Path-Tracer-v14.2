@@ -573,7 +573,7 @@ for idx, route in enumerate(routes):
     
     # Create route edges using the processed device IDs
     for i in range(len(dev) - 1):
-        draw_curved_edge(pos, device_name[device_id.index(dev[i])], device_name[device_id.index(dev[i+1])], app_flow_colors[idx], 'solid', 0.3 + 0.1 * idx)
+        draw_curved_edge(pos, device_name[device_id.index(dev[i])], device_name[device_id.index(dev[i+1])], app_flow_colors[idx % len(app_flow_colors)], 'solid', 0.3 + 0.1 * idx)
 
 # Invert y-axis
 ax.invert_yaxis()
