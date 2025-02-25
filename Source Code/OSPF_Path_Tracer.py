@@ -61,51 +61,6 @@ def config_reader(device_id,flag):
                 pass
     return device_name
 
-#Function to read PCAP file and identify the first calculated Rank value of the node from the DIO message    
-def get_rank_from_pcap(filename,flag):
-    rank=""
-    command = [wireshark_install_path, '-r', filename, '-T', 'fields', '-R', 'icmpv6.code==1', '-Y', 'ipv6.src==' + ip_addr[-1], '-e', 'icmpv6.rpl.dio.rank', '-2']
-    output = subprocess.check_output(command, stderr=subprocess.PIPE).decode()
-    lines = output.splitlines()
-    rank = lines[-1]   
-    #print(command)
-    #print(rank)
-    if(flag==1):
-        print("\nRank obtained from the PCAP log: "+str(int(rank)))
-    return int(rank)
-
-#Function to create node label based on node name from Configuration file and rank value from PCAP file(if exists)
-def get_node_label(type,device,flag):
-    node_label=""
-    node=""
-    if "SINKNODE" in type:
-        #found=re.search("SINKNODE-(.+?)",device).group(1)
-        found=device.replace("SINKNODE-","")
-        #print("sinknode id: "+found)
-        node=config_reader(found,"SINKNODE",flag)
-        if(flag==1):
-            print("\nIdentified "+ node +" in the Configuration file.")
-        r=1
-        node_label=(node+'(rank:'+str(r)+')')
-    elif "SENSOR" in type:
-        #found=re.search("SENSOR-(.+?)",device).group(1)
-        found=device.replace("SENSOR-","")
-        #print("removed prefix "+device)
-        #print("sensor id: "+found)
-        node=config_reader(found,"SENSOR",flag)
-        if(flag==1):
-            print("\nIdentified "+ node +" in the Configuration file.")
-        r=0
-        if(os.path.isfile(node+'_1.pcap')):
-            r=get_rank_from_pcap(sys.argv[1]+'\\'+node+'_1.pcap',flag);
-            node_label=(node+'(rank:'+str(r)+')')
-        else:
-            node_label=(node)
-    else:
-        print("unknown device type")
-    return ('\n\n\n'+node_label)
-
-
 def analyze_packet_routes(trace_data: pd.DataFrame, app_name_list: list) -> list:
     """
     Analyzes packet trace data to identify routes for each application,
@@ -135,7 +90,7 @@ def analyze_packet_routes(trace_data: pd.DataFrame, app_name_list: list) -> list
         
         # Get all packet IDs for this application, sorted
         packet_ids = sorted(app_data['PACKET_ID'].unique())
-        
+        segment_ids = sorted(app_data['SEGMENT_ID'].unique())
         for packet_id in packet_ids:
             if found_complete_route:
                 break
@@ -165,7 +120,7 @@ def analyze_packet_routes(trace_data: pd.DataFrame, app_name_list: list) -> list
                 
                 # Sort matching rows by timestamp (assuming earlier transmissions should be processed first)
                 matching_rows = matching_rows.sort_values('PACKET_ID')
-                
+                matching_rows = matching_rows.sort_values('SEGMENT_ID')
                 found_valid_transmission = False
                 
                 for _, row in matching_rows.iterrows():
@@ -226,7 +181,7 @@ def process_packet_trace(trace_path: str, app_names: list) -> list:
     try:
         # Read the CSV file in chunks
         chunks = []
-        columns = ["PACKET_ID", "CONTROL_PACKET_TYPE/APP_NAME", 
+        columns = ["PACKET_ID", "SEGMENT_ID", "CONTROL_PACKET_TYPE/APP_NAME", 
                   "SOURCE_ID", "DESTINATION_ID", 
                   "TRANSMITTER_ID", "RECEIVER_ID"]
         
@@ -404,6 +359,17 @@ for i, line in enumerate(open('configuration.netsim')):
             app_name.append(found[4])
             app_source.append(found[6])
             app_dest.append(found[8])
+            #print(found)
+
+        except AttributeError:
+            pass
+
+        try:
+            found=re.search("<APPLICATION KEY=\"(.+?)\" APPLICATION_METHOD=\"(.+?)\" APPLICATION_TYPE=\"(.+?)\" ID=\"(.+?)\" NAME=\"(.+?)\" CLIENT_COUNT=\"(.+?)\" CLIENT_ID=\"(.+?)\" SERVER_COUNT=\"(.+?)\" SERVER_ID=\"(.+?)\"",line).group(1,2,3,4,5,6,7,8,9)
+            app_id.append(found[3])
+            app_name.append(found[4])
+            app_source.append(found[8])
+            app_dest.append(found[6])
             #print(found)
 
         except AttributeError:
